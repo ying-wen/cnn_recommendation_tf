@@ -13,9 +13,9 @@ class RecCNN(object):
 
         self.batch_size = 16
         # Placeholders for input, output and dropout
-        self.input_u = tf.placeholder(tf.int32, shape=[self.batch_size, 1], name="input_u")
-        self.input_i = tf.placeholder(tf.int32, shape=[self.batch_size, 1], name="input_i")
-        self.input_y = tf.placeholder(tf.float32, [self.batch_size, num_classes], name="input_y")
+        self.input_u = tf.placeholder(tf.int32, shape=[None, 1], name="input_u")
+        self.input_i = tf.placeholder(tf.int32, shape=[None, 1], name="input_i")
+        self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
         # Keeping track of l2 regularization loss (optional)
@@ -50,7 +50,7 @@ class RecCNN(object):
             conv = tf.nn.conv2d(
                 self.embedded_outer_product_expanded,
                 W,
-                strides=[1, 1, 1,1],
+                strides=[1, 1, 1, 1],
                 padding="VALID",
                 name="conv")
             # Apply nonlinearity
@@ -58,23 +58,12 @@ class RecCNN(object):
             # Maxpooling over the outputs
             self.pooled = tf.nn.max_pool(
                 h,
-                ksize=[1, 2, 2, 1],
-                strides=[1, 2, 2, 1],
+                ksize=[1, embedding_size - filter_size + 1, embedding_size - filter_size + 1, 1],
+                strides=[1, 1, 1, 1],
                 padding='VALID',
                 name="pool")
-        # Combine all the pooled features
-        # num_filters_total = num_filters * len(filter_sizes)
-        # pool = pooled_outputs[0]
-        # print "pool"
-        # pool_shape =  self.pooled.get_shape()
-        dim = 1
-        for d in self.pooled.get_shape()[1:].as_list():
-            dim *= d
-        self.h_pool_flat = tf.reshape(self.pooled, [self.batch_size, dim])
 
-                # self.h_pool = tf.concat(3, pooled_outputs)
-        # self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
-
+        self.h_pool_flat = tf.reshape(self.pooled, [-1, num_filters])
 
         # Add dropout
         with tf.name_scope("dropout"):
@@ -83,15 +72,13 @@ class RecCNN(object):
 
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
-            W = tf.Variable(tf.truncated_normal([dim, num_classes], stddev=0.1), name="W")
+            W = tf.Variable(tf.truncated_normal([num_filters, num_classes], stddev=0.1), name="W")
             b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
             # l2_loss += tf.nn.l2_loss(U)
             # l2_loss += tf.nn.l2_loss(I)
             self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
-            print "shape for scores: " + str(self.scores.get_shape())
-            # self.scores = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
         # CalculateMean cross-entropy loss

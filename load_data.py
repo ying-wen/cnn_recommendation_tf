@@ -59,6 +59,3 @@ def download_and_extract(dataset_url):
     statinfo = os.stat(filepath)
     print('\nSuccessfully downloaded', filename, statinfo.st_size, 'bytes.')
     zipfile.ZipFile(filepath, 'r').extractall(DATA_BASE_PATH)
-
-# load("ml-100k")
-# load("ml-10m")

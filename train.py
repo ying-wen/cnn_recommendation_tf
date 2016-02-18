@@ -8,6 +8,8 @@ import datetime
 from load_data import load,batch_iter
 from rec_cnn import RecCNN
 
+
+# This coede is strongly influened by https://github.com/dennybritz/cnn-text-classification-tf
 # Parameters
 # ==================================================
 
@@ -19,7 +21,7 @@ tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (defau
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 16, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("batch_size", 32, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
@@ -38,16 +40,16 @@ print("")
 print("Loading data...")
 u, i, y = load("ml-100k")
 # Randomly shuffle data
-# np.random.seed(10)
-# shuffle_indices = np.random.permutation(np.arange(len(y)))
-# u_shuffled = u[shuffle_indices]
-# i_shuffled = i[shuffle_indices]
-# y_shuffled = y[shuffle_indices]
+np.random.seed(10)
+shuffle_indices = np.random.permutation(np.arange(len(y)))
+u_shuffled = u[shuffle_indices]
+i_shuffled = i[shuffle_indices]
+y_shuffled = y[shuffle_indices]
 # Split train/test set
 # TODO: This is very crude, should use cross-validation
-u_train, u_dev = u[:-5000], u[-5000:]
-i_train, i_dev = i[:-5000], i[-5000:]
-y_train, y_dev = y[:-5000], y[-5000:]
+u_train, u_dev = u_shuffled[:-1000], u_shuffled[-1000:]
+i_train, i_dev = i_shuffled[:-1000], i_shuffled[-1000:]
+y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
 
 
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
@@ -142,7 +144,6 @@ with tf.Graph().as_default():
             """
             Evaluates model on a dev set
             """
-            cnn.batch_size = 5000
             feed_dict = {
               cnn.input_u: u_batch,
               cnn.input_i: i_batch,
@@ -156,7 +157,7 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             if writer:
                 writer.add_summary(summaries, step)
-            cnn.batch_size = FLAGS.batch_size
+
 
         # Generate batches
         batches = batch_iter(
@@ -169,7 +170,7 @@ with tf.Graph().as_default():
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(u_dev, i_dev, y_dev, writer=dev_summary_writer)
+                # dev_step(u_dev, i_dev, y_dev, writer=dev_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
