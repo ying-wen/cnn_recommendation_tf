@@ -130,14 +130,13 @@ with tf.Graph().as_default():
               cnn.input_u: u_batch,
               cnn.input_i: i_batch,
               cnn.input_y: y_batch,
-              # cnn.batch_size: FLAGS.batch_size,
               cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
-            _, step, summaries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+            _, step, summaries, loss, accuracy, mae, rmse= sess.run(
+                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy, cnn.mae, cnn.rmse],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}, mae {:g}, rmse {:g}".format(time_str, step, loss, accuracy, mae, rmse))
             train_summary_writer.add_summary(summaries, step)
 
         def dev_step(u_batch, i_batch, y_batch, writer=None):
@@ -150,11 +149,11 @@ with tf.Graph().as_default():
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
+            step, summaries, loss, accuracy, mae, rmse = sess.run(
+                [global_step, dev_summary_op, cnn.loss, cnn.accuracy, cnn.mae, cnn.rmse],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}, mae {:g}, rmse {:g}".format(time_str, step, loss, accuracy, mae, rmse))
             if writer:
                 writer.add_summary(summaries, step)
 
@@ -170,7 +169,7 @@ with tf.Graph().as_default():
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                # dev_step(u_dev, i_dev, y_dev, writer=dev_summary_writer)
+                dev_step(u_dev, i_dev, y_dev, writer=dev_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)

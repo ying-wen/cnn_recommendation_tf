@@ -90,3 +90,11 @@ class RecCNN(object):
         with tf.name_scope("accuracy"):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+        # RMSE
+        with tf.name_scope("RMSE"):
+            squares = tf.square(tf.sub(self.predictions, tf.argmax(self.input_y, 1)))
+            self.rmse = tf.sqrt(tf.reduce_mean(tf.cast(squares, "float")), name="rmse")
+        # MAE
+        with tf.name_scope("MAE"):
+            maes = tf.abs(tf.sub(self.predictions, tf.argmax(self.input_y, 1)))
+            self.mae = tf.reduce_mean(tf.cast(maes, "float"), name="mae")
